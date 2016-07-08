@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Outdoor map editor</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="static/leaflet/leaflet.css" />
+</head>
+<body>
+	<div id="allmap" style="position: relative; width: 900px; height: 900px;float: left;">
+		<div id="mapid" style="width: 900px; height: 900px; "></div>
+		<div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div>
+	</div>
+	<div id="controls" style="">
+		<button id="readybtn">Ready</button>
+		<div id="result"></div>
+	</div>
+
+	<script src="static/leaflet/leaflet.js"></script>
+	<script type="text/javascript" src="static/jquery-ui-1.11.4/external/jquery/jquery.js" ></script>
+	<script type="text/javascript" src="static/jquery-ui-1.11.4/jquery-ui.min.js" ></script>
+	<script>
+		var mainPoint = {x: 52.253646100000005, y: 20.997436399999998};
+		mymap = L.map('mapid').setView([mainPoint.x, mainPoint.y], 13);
+
+		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'mapbox.streets'
+		}).addTo(mymap);
+
+
+		L.marker([52.24708, 21.00994]).addTo(mymap)
+			.bindPopup("kapucyni").openPopup();
+
+
+		L.marker([mainPoint.x, mainPoint.y]).addTo(mymap)
+			.bindPopup("mainPoint").openPopup();
+
+
+		// L.circle([51.508, -0.11], 500, {
+		// 	color: 'red',
+		// 	fillColor: '#f03',
+		// 	fillOpacity: 0.5
+		// }).addTo(mymap).bindPopup("I am a circle.");
+
+		// L.polygon([
+		// 	[51.509, -0.08],
+		// 	[51.503, -0.06],
+		// 	[51.51, -0.047]
+		// ]).addTo(mymap).bindPopup("I am a polygon.");
+
+
+		var popup = L.popup();
+
+		function onMapClick(e) {
+			popup
+				.setLatLng(e.latlng)
+				.setContent("You clicked the map at " + e.latlng.toString())
+				.openOn(mymap);
+		}
+
+		mymap.on('click', onMapClick);
+
+		var resultDiv = jQuery("#result");
+		var mapSize = {
+			width: 900,
+			height: 900
+		}
+		var imageSize = {
+			width: 480,
+			height: 800,
+		}
+		// jQuery("#mapimage").draggable();
+		jQuery("#readybtn").click(function(){
+			var bounds = mymap.getBounds();
+			var html = "Map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
+			
+			var html2 = "Image bounds<br>";
+			resultDiv.html(html);
+			console.log(html);
+		})
+
+		function markImage(){
+			var image = jQuery("#mapimage");
+			var topLeftPos = image.position();
+			var width = jQuery("#mapimage").width();
+			var height = jQuery("#mapimage").height();
+
+			var topLeftPoint = L.point(topLeftPos.left, topLeftPos.top);
+			var botomRightPoint = L.point(topLeftPoint.x + width, topLeftPoint.y + height);
+
+			var tl = mymap.containerPointToLatLng(topLeftPoint);
+			var br = mymap.containerPointToLatLng(botomRightPoint);
+		 	L.polygon([
+				[tl.lat, tl.lng],
+				[tl.lat, br.lng],
+				[br.lat, br.lng],
+				[br.lat, tl.lng]
+			]).addTo(mymap).bindPopup("I am a polygon.");
+		}
+	</script>
+</body>
+</html>

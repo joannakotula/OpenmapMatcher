@@ -1,0 +1,11 @@
+Granice małej
+tr: 52.25381, 21.01158
+tl: 52.25375, 20.99868
+bl: 52.23852, 20.99851
+br: 52.23842, 21.01144
+
+
+Punkty:
+		GpsCoordinates kapucyni = new GpsCoordinates(52.24708, 21.00994, 10);
+        final GpsCoordinates dluga1 = new GpsCoordinates(52.25083, 21.0091, 10);
+		GpsCoordinates kilinskiego = new GpsCoordinates(52.249348, 21.009045, 10);
