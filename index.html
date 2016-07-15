@@ -9,37 +9,126 @@
 	<link rel="stylesheet" href="static/leaflet/leaflet.css" />
 </head>
 <body>
+	<style type="text/css">
+		#moveImageUp, #moveImageDown {
+			display: block;
+			margin-left: 20px;
+		}
+		#moveImageControls {
+			margin-left: 20px;
+		}
+
+		#moveImageButtons {
+			float: left;
+		}
+
+		#moveImageScale {
+			float: left;
+			padding-top: 30px;
+			padding-left: 10px;
+		}
+
+	</style>
 	<div id="allmap" style="position: relative; width: 900px; height: 900px;float: left;">
 		<div id="mapid" style="width: 900px; height: 900px; "></div>
-		<div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div>
+		<!-- <div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div> -->
 	</div>
-	<div id="controls" style="">
-		<button id="readybtn">Ready</button>
-		<div id="result"></div>
+	<div id="controls" style="position: relative; margin-left: 900px;">
+		<div><input type='checkbox' id="showImage" checked /> <label for="showImage">Show image</label></div>
+		<div id="moveImageControls">
+			<div id="moveImageButtons">
+				<button id="moveImageUp">&#x25B2;</button>
+				<button id="moveImageLeft">&#x25C0;</button>
+				<button id="moveImageRight">&#x25B6;</button>
+				<button id="moveImageDown">&#x25BC;</button>
+			</div>
+			<div id="moveImageScale">
+				<input type="text" id="moveImageScaleValue" maxlength = "15" value=1 /> m
+			</div>
+			<div style="clear: both"></div>
+		</div>
+		<div>
+			<button id="readybtn">Ready</button>
+			<div id="result"></div>
+		</div>
 	</div>
 
 	<script src="static/leaflet/leaflet.js"></script>
 	<script type="text/javascript" src="static/jquery-ui-1.11.4/external/jquery/jquery.js" ></script>
 	<script type="text/javascript" src="static/jquery-ui-1.11.4/jquery-ui.min.js" ></script>
-	<script>
+	<script type="text/javascript">
+		ImageMapLayer = function(imageUrl, imageBounds, options){
+			var me = this;
+			this._overlay = L.imageOverlay(imageUrl, imageBounds, options);
+
+			this.addTo = function(map){
+				me._overlay.addTo(map);
+			}
+
+			this.getLayer = function(){
+				return me._overlay;
+			}
+
+			this.moveHorizontally = function(meters){
+				var bounds = me._overlay.getBounds();
+				var tl = L.latLng(bounds.getNorth(), bounds.getWest());
+				var tr = L.latLng(bounds.getNorth(), bounds.getEast());
+				var distLatLng = Math.abs(bounds.getWest() - bounds.getEast());
+				var distMeters = tl.distanceTo(tr);
+
+				var diffLatLng = meters * distLatLng/distMeters;
+				// console.log(meters + " * " + distLatLng + "/" + distMeters + " = " + diffLatLng);
+				var southWest = L.latLng(bounds.getSouth(), bounds.getWest() + diffLatLng);
+    			var	northEast = L.latLng(bounds.getNorth(), bounds.getEast() + diffLatLng);
+    			// console.log(tr.distanceTo(northEast));
+    			var newbounds = L.latLngBounds(southWest, northEast);
+    			me._overlay.setBounds(newbounds);
+			}
+
+			this.moveVertically = function(meters){
+				var bounds = me._overlay.getBounds();
+				var tl = L.latLng(bounds.getNorth(), bounds.getWest());
+				var bl = L.latLng(bounds.getSouth(), bounds.getWest());
+				var distLatLng = Math.abs(bounds.getNorth() - bounds.getSouth());
+				var distMeters = tl.distanceTo(bl);
+				var diffLatLng = meters * distLatLng/distMeters;
+				var southWest = L.latLng(bounds.getSouth() + diffLatLng, bounds.getWest());
+    			var	northEast = L.latLng(bounds.getNorth() + diffLatLng, bounds.getEast());
+    			var newbounds = L.latLngBounds(southWest, northEast);
+    			me._overlay.setBounds(newbounds);
+			}
+
+		};
+
 		var mainPoint = {x: 52.253646100000005, y: 20.997436399999998};
 		mymap = L.map('mapid').setView([mainPoint.x, mainPoint.y], 13);
 
-		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw', {
+		mainLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw', {
 			maxZoom: 18,
 			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
 				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
 				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
 			id: 'mapbox.streets'
-		}).addTo(mymap);
+		});
+		mainLayer.addTo(mymap);
+
+		var imageUrl = 'data/warszawa_1944.jpg';
+		var imageBounds = [[52.23842, 20.99851], [52.25381, 21.01158]];
+		var imageLayer = new ImageMapLayer(imageUrl, imageBounds, {opacity: 0.5});
+
+		imageLayer.addTo(mymap);
+
+		L.control.layers([mainLayer], [imageLayer.getLayer()]).addTo(mymap);
 
 
-		L.marker([52.24708, 21.00994]).addTo(mymap)
-			.bindPopup("kapucyni").openPopup();
+		// L.marker([52.24708, 21.00994]).addTo(mymap)
+			// .bindPopup("kapucyni").openPopup();
 
 
-		L.marker([mainPoint.x, mainPoint.y]).addTo(mymap)
-			.bindPopup("mainPoint").openPopup();
+		// L.marker([mainPoint.x, mainPoint.y]).addTo(mymap)
+			// .bindPopup("mainPoint").openPopup();
+
+		L.control.scale().addTo(mymap);
 
 
 		// L.circle([51.508, -0.11], 500, {
@@ -85,6 +174,36 @@
 			console.log(html);
 		})
 
+		jQuery("#showImage").change(function(){
+			var image = jQuery("#mapimage");
+			if(this.checked){
+				image.show();	
+			} else {
+				image.hide();
+			}
+		});
+
+		getMoveImageScale = function(){
+			return jQuery("#moveImageScaleValue").val();
+		}
+
+		jQuery("#moveImageRight").click(function(){
+			imageLayer.moveHorizontally(getMoveImageScale());
+		});
+
+		jQuery("#moveImageLeft").click(function(){
+			imageLayer.moveHorizontally(-getMoveImageScale());
+		});
+
+		jQuery("#moveImageUp").click(function(){
+			imageLayer.moveVertically(getMoveImageScale());
+		});
+
+		jQuery("#moveImageDown").click(function(){
+			imageLayer.moveVertically(-getMoveImageScale());
+		});
+
+
 		function markImage(){
 			var image = jQuery("#mapimage");
 			var topLeftPos = image.position();
@@ -103,6 +222,9 @@
 				[br.lat, tl.lng]
 			]).addTo(mymap).bindPopup("I am a polygon.");
 		}
+
+
+
 	</script>
 </body>
 </html>
