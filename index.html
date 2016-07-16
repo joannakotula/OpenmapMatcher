@@ -10,12 +10,16 @@
 </head>
 <body>
 	<style type="text/css">
+		#controls {
+			float: left;
+			padding-left: 20px;
+		}
 		#moveImageUp, #moveImageDown {
 			display: block;
 			margin-left: 20px;
 		}
 		#moveImageControls {
-			margin-left: 20px;
+			overflow: auto;
 		}
 
 		#moveImageButtons {
@@ -27,15 +31,33 @@
 			padding-top: 30px;
 			padding-left: 10px;
 		}
+		#zoomImageButtons {
+			float: left;
+		}
+		#zoomImageScale {
+			float: left;
+			margin-left: 10px;
+		}
+
+
+		.clearfix:after { 
+		   content: " ";
+		   display: block; 
+		   height: 0; 
+		   clear: both;
+		}
+		.group {
+			margin-top: 10px;
+		}
 
 	</style>
 	<div id="allmap" style="position: relative; width: 900px; height: 900px;float: left;">
 		<div id="mapid" style="width: 900px; height: 900px; "></div>
 		<!-- <div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div> -->
 	</div>
-	<div id="controls" style="position: relative; margin-left: 900px;">
+	<div id="controls" >
 		<div><input type='checkbox' id="showImage" checked /> <label for="showImage">Show image</label></div>
-		<div id="moveImageControls">
+		<div id="moveImageControls" class="clearfix group">
 			<div id="moveImageButtons">
 				<button id="moveImageUp">&#x25B2;</button>
 				<button id="moveImageLeft">&#x25C0;</button>
@@ -44,8 +66,17 @@
 			</div>
 			<div id="moveImageScale">
 				<input type="text" id="moveImageScaleValue" maxlength = "15" value=1 /> m
+			</div>	
+		</div>
+
+		<div id="zoomImageControls" class="clearfix group">
+			<div id="zoomImageButtons">
+				<button id="zoomImageOut">+</button>
+				<button id="zoomImageIn">-</button>
 			</div>
-			<div style="clear: both"></div>
+			<div id="zoomImageScale">
+				x <input type="text" id="zoomImageScaleValue" maxlength = "5" value="2.0" />
+			</div>
 		</div>
 		<div>
 			<button id="readybtn">Ready</button>
@@ -54,51 +85,11 @@
 	</div>
 
 	<script src="static/leaflet/leaflet.js"></script>
+	<script src="static/imagemaplayer.js"></script>
 	<script type="text/javascript" src="static/jquery-ui-1.11.4/external/jquery/jquery.js" ></script>
 	<script type="text/javascript" src="static/jquery-ui-1.11.4/jquery-ui.min.js" ></script>
 	<script type="text/javascript">
-		ImageMapLayer = function(imageUrl, imageBounds, options){
-			var me = this;
-			this._overlay = L.imageOverlay(imageUrl, imageBounds, options);
-
-			this.addTo = function(map){
-				me._overlay.addTo(map);
-			}
-
-			this.getLayer = function(){
-				return me._overlay;
-			}
-
-			this.moveHorizontally = function(meters){
-				var bounds = me._overlay.getBounds();
-				var tl = L.latLng(bounds.getNorth(), bounds.getWest());
-				var tr = L.latLng(bounds.getNorth(), bounds.getEast());
-				var distLatLng = Math.abs(bounds.getWest() - bounds.getEast());
-				var distMeters = tl.distanceTo(tr);
-
-				var diffLatLng = meters * distLatLng/distMeters;
-				// console.log(meters + " * " + distLatLng + "/" + distMeters + " = " + diffLatLng);
-				var southWest = L.latLng(bounds.getSouth(), bounds.getWest() + diffLatLng);
-    			var	northEast = L.latLng(bounds.getNorth(), bounds.getEast() + diffLatLng);
-    			// console.log(tr.distanceTo(northEast));
-    			var newbounds = L.latLngBounds(southWest, northEast);
-    			me._overlay.setBounds(newbounds);
-			}
-
-			this.moveVertically = function(meters){
-				var bounds = me._overlay.getBounds();
-				var tl = L.latLng(bounds.getNorth(), bounds.getWest());
-				var bl = L.latLng(bounds.getSouth(), bounds.getWest());
-				var distLatLng = Math.abs(bounds.getNorth() - bounds.getSouth());
-				var distMeters = tl.distanceTo(bl);
-				var diffLatLng = meters * distLatLng/distMeters;
-				var southWest = L.latLng(bounds.getSouth() + diffLatLng, bounds.getWest());
-    			var	northEast = L.latLng(bounds.getNorth() + diffLatLng, bounds.getEast());
-    			var newbounds = L.latLngBounds(southWest, northEast);
-    			me._overlay.setBounds(newbounds);
-			}
-
-		};
+		
 
 		var mainPoint = {x: 52.253646100000005, y: 20.997436399999998};
 		mymap = L.map('mapid').setView([mainPoint.x, mainPoint.y], 13);
@@ -166,12 +157,13 @@
 		}
 		// jQuery("#mapimage").draggable();
 		jQuery("#readybtn").click(function(){
-			var bounds = mymap.getBounds();
-			var html = "Map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
+			// var bounds = mymap.getBounds();
+			// var html = "Map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
 			
-			var html2 = "Image bounds<br>";
-			resultDiv.html(html);
-			console.log(html);
+			// var html2 = "Image bounds<br>";
+			// resultDiv.html(html);
+			// console.log(html);
+			imageLayer.drawBounds();
 		})
 
 		jQuery("#showImage").change(function(){
@@ -185,6 +177,10 @@
 
 		getMoveImageScale = function(){
 			return jQuery("#moveImageScaleValue").val();
+		}
+
+		getZoomImageScale = function(){
+			return jQuery("#zoomImageScaleValue").val();
 		}
 
 		jQuery("#moveImageRight").click(function(){
@@ -203,6 +199,12 @@
 			imageLayer.moveVertically(-getMoveImageScale());
 		});
 
+		jQuery("#zoomImageIn").click(function(){
+			imageLayer.zoom(1/getZoomImageScale());
+		});
+		jQuery("#zoomImageOut").click(function(){
+			imageLayer.zoom(getZoomImageScale());
+		});
 
 		function markImage(){
 			var image = jQuery("#mapimage");
