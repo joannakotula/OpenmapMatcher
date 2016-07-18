@@ -137,11 +137,26 @@
 
 		var popup = L.popup();
 
+		function addAsFixedPoint(latlng){
+			if(imageLayer.containsPoint(latlng)){
+				imageLayer.addFixedPoint(latlng);
+			}
+			// console.log(latlng);
+		}
+
 		function onMapClick(e) {
+			var content = "You clicked the map at " + e.latlng.toString();
+			if(imageLayer.containsPoint(e.latlng)){
+				content += "<br> <a id='setfixedpoint'> Set as fixed point </a>";
+			}
 			popup
 				.setLatLng(e.latlng)
-				.setContent("You clicked the map at " + e.latlng.toString())
+				.setContent(content)
 				.openOn(mymap);
+			jQuery("#setfixedpoint").click(function(){
+				addAsFixedPoint(e.latlng);
+				mymap.closePopup();
+			});
 		}
 
 		mymap.on('click', onMapClick);

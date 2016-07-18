@@ -1,6 +1,35 @@
 ImageMapLayer = function(imageUrl, imageBounds, options){
 	var me = this;
 	this._overlay = L.imageOverlay(imageUrl, imageBounds, options);
+	FixedPoint = function(fromNorth, fromEast, marker){
+		this.fromNorth = fromNorth;
+		this.fromEast = fromEast;
+		this.marker = marker;
+
+		this.onRemove = function(){
+			if(marker){
+				marker.remove();
+			}
+		}
+
+		this.getFromNorth = function(){
+			return fromNorth;
+		}
+
+		this.getFromSouth = function(){
+			return 1 - fromNorth;
+		}
+
+		this.getFromEast = function(){
+			return fromEast;
+		}
+
+		this.getFromWest = function(){
+			return 1 - fromEast;
+		}
+	}
+	DEFAULT_FIXED_POINT = new FixedPoint(0.5, 0.5);
+	this.fixedPoint = DEFAULT_FIXED_POINT;
 
 	this.addTo = function(map){
 		me._map = map;
@@ -9,6 +38,26 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 
 	this.getLayer = function(){
 		return me._overlay;
+	}
+
+	this.removeFixedPoint = function(){
+		this.fixedPoint.onRemove();
+		this.fixedPoint = DEFAULT_FIXED_POINT;
+	}
+
+	this.addFixedPoint = function(latlng){
+		this.fixedPoint.onRemove();
+		var bounds = me._overlay.getBounds();
+		var fromNorthCoords = bounds.getNorth() - latlng.lat;
+		var fromEastCoords = bounds.getEast() - latlng.lng;
+
+		var widthCoords = bounds.getEast() - bounds.getWest();
+		var heightCoords = bounds.getNorth() - bounds.getSouth();
+
+		var marker = L.marker(latlng).bindPopup("fixed point");
+		marker.addTo(me._map);
+
+		this.fixedPoint = new FixedPoint(fromNorthCoords/heightCoords, fromEastCoords/widthCoords, marker);
 	}
 
 	this.moveHorizontally = function(meters){
@@ -74,6 +123,14 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 		// console.log("lats: [" + changedLats.a + ", " + changedLats.b + "] = " + Math.abs(changedLats.a - changedLats.b) + ", expected: " + newDistLat);
 		// console.log("lngs: [" + changedLngs.a + ", " + changedLngs.b + "] = " + Math.abs(changedLngs.a - changedLngs.b) + ", expected: " + newDistLng);
 
+	}
+
+	this.containsPoint = function(latlng){
+		var bounds = me._overlay.getBounds();
+		return latlng.lat <= bounds.getNorth() 
+			&& latlng.lat >= bounds.getSouth()
+			&& latlng.lng <= bounds.getEast()
+			&& latlng.lng >= bounds.getWest();
 	}
 
 	this.drawBounds = function(){
