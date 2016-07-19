@@ -56,32 +56,37 @@
 		<!-- <div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div> -->
 	</div>
 	<div id="controls" >
-		<div><input type='checkbox' id="showImage" checked /> <label for="showImage">Show image</label></div>
-		<div id="moveImageControls" class="clearfix group">
-			<div id="moveImageButtons">
-				<button id="moveImageUp">&#x25B2;</button>
-				<button id="moveImageLeft">&#x25C0;</button>
-				<button id="moveImageRight">&#x25B6;</button>
-				<button id="moveImageDown">&#x25BC;</button>
-			</div>
-			<div id="moveImageScale">
-				<input type="text" id="moveImageScaleValue" maxlength = "15" value=1 /> m
-			</div>	
+		<div id="imageMatcher">
+			<div><input type='checkbox' id="showImage" checked /> <label for="showImage">Show image</label></div>
 		</div>
+		<div id="imageLayerMatcher">
+			<div id="moveImageControls" class="clearfix group">
+				<div id="moveImageButtons">
+					<button id="moveImageUp">&#x25B2;</button>
+					<button id="moveImageLeft">&#x25C0;</button>
+					<button id="moveImageRight">&#x25B6;</button>
+					<button id="moveImageDown">&#x25BC;</button>
+				</div>
+				<div id="moveImageScale">
+					<input type="text" id="moveImageScaleValue" maxlength = "15" value=1 /> m
+				</div>	
+			</div>
 
-		<div id="zoomImageControls" class="clearfix group">
-			<div id="zoomImageButtons">
-				<button id="zoomImageOut">+</button>
-				<button id="zoomImageIn">-</button>
+			<div id="zoomImageControls" class="clearfix group">
+				<div id="zoomImageButtons">
+					<button id="zoomImageOut">+</button>
+					<button id="zoomImageIn">-</button>
+				</div>
+				<div id="zoomImageScale">
+					x <input type="text" id="zoomImageScaleValue" maxlength = "5" value="2.0" />
+				</div>
 			</div>
-			<div id="zoomImageScale">
-				x <input type="text" id="zoomImageScaleValue" maxlength = "5" value="2.0" />
+			<div>
+				<button id="readybtn">Ready</button>
+				<div id="result"></div>
 			</div>
 		</div>
-		<div>
-			<button id="readybtn">Ready</button>
-			<div id="result"></div>
-		</div>
+		
 	</div>
 
 	<script src="static/leaflet/leaflet.js"></script>
@@ -102,84 +107,91 @@
 			id: 'mapbox.streets'
 		});
 		mainLayer.addTo(mymap);
-
-		var imageUrl = 'data/warszawa_1944.jpg';
-		var imageBounds = [[52.23842, 20.99851], [52.25381, 21.01158]];
-		var imageLayer = new ImageMapLayer(imageUrl, imageBounds, {opacity: 0.5});
-
-		imageLayer.addTo(mymap);
-
-		L.control.layers({"main" : mainLayer}, {"image": imageLayer.getLayer()}).addTo(mymap);
-
-
-		// L.marker([52.24708, 21.00994]).addTo(mymap)
-			// .bindPopup("kapucyni").openPopup();
-
-
-		// L.marker([mainPoint.x, mainPoint.y]).addTo(mymap)
-			// .bindPopup("mainPoint").openPopup();
-
 		L.control.scale().addTo(mymap);
+	
 
+		function startImageLayerMatching(imageUrl, imageBounds) {
+			var imageLayer = new ImageMapLayer(imageUrl, imageBounds, {opacity: 0.5});
+			imageLayer.addTo(mymap);
+			L.control.layers({"main" : mainLayer}, {"image": imageLayer.getLayer()}).addTo(mymap);
 
-		// L.circle([51.508, -0.11], 500, {
-		// 	color: 'red',
-		// 	fillColor: '#f03',
-		// 	fillOpacity: 0.5
-		// }).addTo(mymap).bindPopup("I am a circle.");
+			var popup = L.popup();
 
-		// L.polygon([
-		// 	[51.509, -0.08],
-		// 	[51.503, -0.06],
-		// 	[51.51, -0.047]
-		// ]).addTo(mymap).bindPopup("I am a polygon.");
-
-
-		var popup = L.popup();
-
-		function addAsFixedPoint(latlng){
-			if(imageLayer.containsPoint(latlng)){
-				imageLayer.addFixedPoint(latlng);
+			function addAsFixedPoint(latlng){
+				if(imageLayer.containsPoint(latlng)){
+					imageLayer.addFixedPoint(latlng);
+				}
+				// console.log(latlng);
 			}
-			// console.log(latlng);
-		}
 
-		function onMapClick(e) {
-			var content = "You clicked the map at " + e.latlng.toString();
-			if(imageLayer.containsPoint(e.latlng)){
-				content += "<br> <a id='setfixedpoint'> Set as fixed point </a>";
+			function onMapClick(e) {
+				var content = "You clicked the map at " + e.latlng.toString();
+				if(imageLayer.containsPoint(e.latlng)){
+					content += "<br> <a id='setfixedpoint'> Set as fixed point </a>";
+				}
+				popup
+					.setLatLng(e.latlng)
+					.setContent(content)
+					.openOn(mymap);
+				jQuery("#setfixedpoint").click(function(){
+					addAsFixedPoint(e.latlng);
+					mymap.closePopup();
+				});
 			}
-			popup
-				.setLatLng(e.latlng)
-				.setContent(content)
-				.openOn(mymap);
-			jQuery("#setfixedpoint").click(function(){
-				addAsFixedPoint(e.latlng);
-				mymap.closePopup();
+
+			mymap.on('click', onMapClick);
+
+			jQuery("#readybtn").click(function(){
+				var resultDiv = jQuery("#result");
+				var bounds = mymap.getBounds();
+				var html = "Image map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
+				html += "tl = [" + bounds.getNorth() + ", " + bounds.getWest() + "] <br>";
+				html += "br = [" + bounds.getSouth() + ", " + bounds.getEast() + "] <br>";
+				
+				resultDiv.html(html);
+				imageLayer.drawBounds();
+			})
+
+			getMoveImageScale = function(){
+				return jQuery("#moveImageScaleValue").val();
+			}
+
+			getZoomImageScale = function(){
+				return jQuery("#zoomImageScaleValue").val();
+			}
+
+			jQuery("#moveImageRight").click(function(){
+				imageLayer.moveHorizontally(getMoveImageScale());
 			});
+
+			jQuery("#moveImageLeft").click(function(){
+				imageLayer.moveHorizontally(-getMoveImageScale());
+			});
+
+			jQuery("#moveImageUp").click(function(){
+				imageLayer.moveVertically(getMoveImageScale());
+			});
+
+			jQuery("#moveImageDown").click(function(){
+				imageLayer.moveVertically(-getMoveImageScale());
+			});
+
+			jQuery("#zoomImageIn").click(function(){
+				imageLayer.zoom(1/getZoomImageScale());
+			});
+			jQuery("#zoomImageOut").click(function(){
+				imageLayer.zoom(getZoomImageScale());
+			});
+
+
+			jQuery("#imageMatcher").hide();
+			jQuery("#imageLayerMatcher").show();
+
 		}
 
-		mymap.on('click', onMapClick);
 
-		var resultDiv = jQuery("#result");
-		var mapSize = {
-			width: 900,
-			height: 900
-		}
-		var imageSize = {
-			width: 480,
-			height: 800,
-		}
 		// jQuery("#mapimage").draggable();
-		jQuery("#readybtn").click(function(){
-			var bounds = mymap.getBounds();
-			var html = "Image map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
-			html += "tl = [" + bounds.getNorth() + ", " + bounds.getWest() + "] <br>";
-			html += "br = [" + bounds.getSouth() + ", " + bounds.getEast() + "] <br>";
-			
-			resultDiv.html(html);
-			imageLayer.drawBounds();
-		})
+		
 
 		jQuery("#showImage").change(function(){
 			var image = jQuery("#mapimage");
@@ -190,37 +202,7 @@
 			}
 		});
 
-		getMoveImageScale = function(){
-			return jQuery("#moveImageScaleValue").val();
-		}
-
-		getZoomImageScale = function(){
-			return jQuery("#zoomImageScaleValue").val();
-		}
-
-		jQuery("#moveImageRight").click(function(){
-			imageLayer.moveHorizontally(getMoveImageScale());
-		});
-
-		jQuery("#moveImageLeft").click(function(){
-			imageLayer.moveHorizontally(-getMoveImageScale());
-		});
-
-		jQuery("#moveImageUp").click(function(){
-			imageLayer.moveVertically(getMoveImageScale());
-		});
-
-		jQuery("#moveImageDown").click(function(){
-			imageLayer.moveVertically(-getMoveImageScale());
-		});
-
-		jQuery("#zoomImageIn").click(function(){
-			imageLayer.zoom(1/getZoomImageScale());
-		});
-		jQuery("#zoomImageOut").click(function(){
-			imageLayer.zoom(getZoomImageScale());
-		});
-
+		
 		function markImage(){
 			var image = jQuery("#mapimage");
 			var topLeftPos = image.position();
@@ -241,6 +223,9 @@
 		}
 
 
+		var imageUrl = 'data/warszawa_1944.jpg';
+		var imageBounds = [[52.23842, 20.99851], [52.25381, 21.01158]];
+		startImageLayerMatching(imageUrl, imageBounds);
 
 	</script>
 </body>
