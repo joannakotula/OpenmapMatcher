@@ -29,7 +29,7 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 		}
 	}
 	DEFAULT_FIXED_POINT = new FixedPoint(0.5, 0.5);
-	this.fixedPoint = DEFAULT_FIXED_POINT;
+	this._fixedPoint = DEFAULT_FIXED_POINT;
 
 	this.addTo = function(map){
 		me._map = map;
@@ -41,12 +41,16 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 	}
 
 	this.removeFixedPoint = function(){
-		this.fixedPoint.onRemove();
-		this.fixedPoint = DEFAULT_FIXED_POINT;
+		me._fixedPoint.onRemove();
+		me._fixedPoint = DEFAULT_FIXED_POINT;
+	}
+
+	this.getBounds = function(){
+		return me._overlay.getBounds();
 	}
 
 	this.addFixedPoint = function(latlng){
-		this.fixedPoint.onRemove();
+		me._fixedPoint.onRemove();
 		var bounds = me._overlay.getBounds();
 		var fromNorthCoords = bounds.getNorth() - latlng.lat;
 		var fromEastCoords = bounds.getEast() - latlng.lng;
@@ -57,7 +61,7 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 		var marker = L.marker(latlng).bindPopup("fixed point");
 		marker.addTo(me._map);
 
-		this.fixedPoint = new FixedPoint(fromNorthCoords/heightCoords, fromEastCoords/widthCoords, marker);
+		me._fixedPoint = new FixedPoint(fromNorthCoords/heightCoords, fromEastCoords/widthCoords, marker);
 	}
 
 	this.moveHorizontally = function(meters){
@@ -89,21 +93,9 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 		me._overlay.setBounds(newbounds);
 	}
 
-	var Line = function(a, b){
-		this.a = a;
-		this.b = b;
-	}
 
-	var changeDist = function(line, diff){
-		var oneDiff = diff/2;
-		if(line.a > line.b){
-			line.a += oneDiff;
-			line.b -= oneDiff;
-		} else {
-			line.a -= oneDiff;
-			line.b += oneDiff;
-		}
-		return line;
+	var changeDist = function(coord, distRatio, distDiff){
+		return coord + distRatio*distDiff;
 	}
 
 	this.zoom = function(scale){
@@ -114,15 +106,19 @@ ImageMapLayer = function(imageUrl, imageBounds, options){
 		var newDistLat = distLat * scale;
 		var newDistLng = distLng * scale;
 
-		var changedLats = changeDist(new Line(bounds.getNorth(), bounds.getSouth()), newDistLat - distLat);
-		var changedLngs = changeDist(new Line(bounds.getEast(), bounds.getWest()), newDistLng - distLng);
-		var southWest = L.latLng(changedLats.b, changedLngs.b);
-		var	northEast = L.latLng(changedLats.a, changedLngs.a);
+		var diffDistLat = newDistLat - distLat;
+		var diffDistLng = newDistLng - distLng;
+
+		var newNorth = changeDist(bounds.getNorth(), me._fixedPoint.getFromNorth(), diffDistLat);
+		var newSouth = changeDist(bounds.getSouth(), me._fixedPoint.getFromSouth(), -diffDistLat);
+
+		var newEast = changeDist(bounds.getEast(), me._fixedPoint.getFromEast(), diffDistLng);
+		var newWest = changeDist(bounds.getWest(), me._fixedPoint.getFromWest(), -diffDistLng);
+
+		var southWest = L.latLng(newSouth, newWest);
+		var	northEast = L.latLng(newNorth, newEast);
 		var newBounds = L.latLngBounds(southWest, northEast);
 		me._overlay.setBounds(newBounds);
-		// console.log("lats: [" + changedLats.a + ", " + changedLats.b + "] = " + Math.abs(changedLats.a - changedLats.b) + ", expected: " + newDistLat);
-		// console.log("lngs: [" + changedLngs.a + ", " + changedLngs.b + "] = " + Math.abs(changedLngs.a - changedLngs.b) + ", expected: " + newDistLng);
-
 	}
 
 	this.containsPoint = function(latlng){

@@ -109,7 +109,7 @@
 
 		imageLayer.addTo(mymap);
 
-		L.control.layers([mainLayer], [imageLayer.getLayer()]).addTo(mymap);
+		L.control.layers({"main" : mainLayer}, {"image": imageLayer.getLayer()}).addTo(mymap);
 
 
 		// L.marker([52.24708, 21.00994]).addTo(mymap)
@@ -172,12 +172,12 @@
 		}
 		// jQuery("#mapimage").draggable();
 		jQuery("#readybtn").click(function(){
-			// var bounds = mymap.getBounds();
-			// var html = "Map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
+			var bounds = mymap.getBounds();
+			var html = "Image map bounds: <br>" + bounds.getNorth() + " - " + bounds.getSouth() + "<br>" + bounds.getWest() + " - " + bounds.getEast() + "<br>";
+			html += "tl = [" + bounds.getNorth() + ", " + bounds.getWest() + "] <br>";
+			html += "br = [" + bounds.getSouth() + ", " + bounds.getEast() + "] <br>";
 			
-			// var html2 = "Image bounds<br>";
-			// resultDiv.html(html);
-			// console.log(html);
+			resultDiv.html(html);
 			imageLayer.drawBounds();
 		})
 
