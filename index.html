@@ -53,11 +53,11 @@
 	</style>
 	<div id="allmap" style="position: relative; width: 900px; height: 900px;float: left;">
 		<div id="mapid" style="width: 900px; height: 900px; "></div>
-		<!-- <div id="mapimage" style="position: absolute; top: 50px; left: 210px;"><img src="data/warszawa_1944.jpg" style="height: 800px; width: 480px; opacity: 0.5;" /></div> -->
 	</div>
 	<div id="controls" >
 		<div id="imageMatcher">
 			<div><input type='checkbox' id="showImage" checked /> <label for="showImage">Show image</label></div>
+			<div><button id="moveToLayerBtn">Move image to the layer</button></div>
 		</div>
 		<div id="imageLayerMatcher">
 			<div id="moveImageControls" class="clearfix group">
@@ -191,42 +191,69 @@
 
 
 		// jQuery("#mapimage").draggable();
-		
+		function startImageMaching(imageUrl){
+			var image = jQuery('<div id="mapimage" style="position: absolute; top: 50px; left: 210px; z-index: 1000"><img src="' + imageUrl + '" style="height: 800px; width: 480px; opacity: 0.5;" /></div>');
+			image.appendTo("#allmap");
 
-		jQuery("#showImage").change(function(){
-			var image = jQuery("#mapimage");
-			if(this.checked){
-				image.show();	
-			} else {
-				image.hide();
+			jQuery("#showImage").change(function(){
+				if(this.checked){
+					image.show();	
+				} else {
+					image.hide();
+				}
+			});
+
+			function getBounds(){
+				var topLeftPos = image.position();
+				var width = image.width();
+				var height = image.height();
+
+				var left = topLeftPos.left;
+				var right = left + width;
+				
+				var top = topLeftPos.top;
+				var bottom = top + height
+
+				var northEastPoint = L.point(right, top);
+				var southWestPoint = L.point(left, bottom);
+
+				var northEast = mymap.containerPointToLatLng(northEastPoint);
+				var southWest = mymap.containerPointToLatLng(southWestPoint);
+
+				return L.latLngBounds(southWest, northEast);
+
 			}
-		});
+			function markImage(){
+				
+				var bounds = getBounds();
+			 	L.polygon([
+					[bounds.getNorth(), bounds.getWest()],
+					[bounds.getNorth(), bounds.getEast()],
+					[bounds.getSouth(), bounds.getEast()],
+					[bounds.getSouth(), bounds.getWest()]
+				]).addTo(mymap).bindPopup("I am a polygon.");
+			}
+
+			jQuery("#moveToLayerBtn").click(function(){
+				
+				var bounds = getBounds();
+				console.log(bounds);
+				// markImage();
+				image.hide();
+				startImageLayerMatching(imageUrl, bounds);
+			});
+
+			jQuery("#imageMatcher").show();
+			jQuery("#imageLayerMatcher").hide();
+
+		}
+		
+
 
 		
-		function markImage(){
-			var image = jQuery("#mapimage");
-			var topLeftPos = image.position();
-			var width = jQuery("#mapimage").width();
-			var height = jQuery("#mapimage").height();
-
-			var topLeftPoint = L.point(topLeftPos.left, topLeftPos.top);
-			var botomRightPoint = L.point(topLeftPoint.x + width, topLeftPoint.y + height);
-
-			var tl = mymap.containerPointToLatLng(topLeftPoint);
-			var br = mymap.containerPointToLatLng(botomRightPoint);
-		 	L.polygon([
-				[tl.lat, tl.lng],
-				[tl.lat, br.lng],
-				[br.lat, br.lng],
-				[br.lat, tl.lng]
-			]).addTo(mymap).bindPopup("I am a polygon.");
-		}
-
 
 		var imageUrl = 'data/warszawa_1944.jpg';
-		var imageBounds = [[52.23842, 20.99851], [52.25381, 21.01158]];
-		startImageLayerMatching(imageUrl, imageBounds);
-
+		startImageMaching(imageUrl);
 	</script>
 </body>
 </html>
